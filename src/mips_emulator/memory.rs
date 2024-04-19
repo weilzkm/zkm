@@ -442,7 +442,7 @@ impl Memory {
                 image.insert(addr + (i << 2) as u32, u32::from_le_bytes(bytes));
             }
         }
-
+        log::trace!("page number {}", self.rtrace.len());
         self.rtrace.clear();
         image
     }
