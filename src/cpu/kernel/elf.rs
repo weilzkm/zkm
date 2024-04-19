@@ -28,6 +28,7 @@ pub struct Program {
     pub pre_image_id: [u8; 32],
     pub pre_hash_root: [u8; 32],
     pub page_hash_root: [u8; 32],
+    pub step: u32,
 }
 
 impl Program {
@@ -226,6 +227,7 @@ impl Program {
             pre_image_id,
             pre_hash_root,
             page_hash_root,
+            step: 0xffffffffu32,
         })
     }
 
@@ -272,6 +274,7 @@ impl Program {
             pre_image_id: segment.pre_image_id,
             pre_hash_root: segment.pre_hash_root,
             page_hash_root,
+            step: segment.step,
         })
     }
 }

@@ -18,6 +18,7 @@ pub const FD_STDERR: u32 = 2;
 pub const MIPS_EBADF: u32 = 9;
 
 pub const SEGMENT_STEPS: usize = 200000;
+pub const PAGE_NUM: usize = 145;
 
 // image_id = keccak(page_hash_root || end_pc)
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Default)]
@@ -30,6 +31,7 @@ pub struct Segment {
     pub image_id: [u8; 32],
     pub page_hash_root: [u8; 32],
     pub end_pc: u32,
+    pub step: u32,
 }
 
 pub struct State {
@@ -53,6 +55,7 @@ pub struct State {
 
     pub exited: bool,
     exit_code: u8,
+    pub split: bool,
 }
 
 impl Display for State {
@@ -80,6 +83,7 @@ impl State {
             step: 0,
             exited: false,
             exit_code: 0,
+            split: false,
         })
     }
 
@@ -97,6 +101,7 @@ impl State {
             step: 0,
             exited: false,
             exit_code: 0,
+            split: false,
         });
 
         let mut program = Box::from(Program::new());
@@ -333,7 +338,7 @@ pub struct InstrumentedState {
     /// writer for stderr
     stderr_writer: Box<dyn Write>,
 
-    pre_segment_id: u32,
+    pub pre_segment_id: u32,
     pre_pc: u32,
     pre_image_id: [u8; 32],
     pre_hash_root: [u8; 32],
@@ -609,8 +614,14 @@ impl InstrumentedState {
 
         self.state.step += 1;
 
+        let previous_rtrace= self.state.memory.rtrace_count();
         // fetch instruction
         let insn = self.state.memory.get_memory(self.state.pc);
+        let new_rtrace = self.state.memory.rtrace_count();
+        if (new_rtrace != previous_rtrace) && new_rtrace >= PAGE_NUM {
+            self.state.split = true;
+            return;
+        }
         let opcode = insn >> 26; // 6-bits
 
         // j-type j/jal
@@ -666,6 +677,11 @@ impl InstrumentedState {
             rs = (rs as u64 + sign_extension(insn & 0xffFF, 16) as u64) as u32;
             let addr = rs & 0xFFffFFfc;
             mem = self.state.memory.get_memory(addr);
+            let new_rtrace = self.state.memory.rtrace_count();
+            if (new_rtrace != previous_rtrace) && new_rtrace >= PAGE_NUM {
+                self.state.split = true;
+                return;
+            }
             if opcode >= 0x28 && opcode != 0x30 {
                 // store
                 store_addr = addr;
@@ -711,6 +727,10 @@ impl InstrumentedState {
 
             // syscall (can read/write)
             if fun == 0xc {
+                if new_rtrace >= PAGE_NUM - 4 {
+                    self.state.split = true;
+                    return;
+                }
                 self.handle_syscall();
                 // todo: trace the memory access
                 return;
@@ -940,6 +960,7 @@ impl InstrumentedState {
     pub fn split_segment<W: Write>(
         &mut self,
         proof: bool,
+        step: usize,
         output: &str,
         new_writer: fn(&str) -> Option<W>,
     ) {
@@ -957,6 +978,7 @@ impl InstrumentedState {
                 image_id,
                 end_pc: self.state.pc,
                 page_hash_root,
+                step: step as u32,
             };
             let name = format!("{output}/{}", self.pre_segment_id);
             log::trace!("split: file {}", name);

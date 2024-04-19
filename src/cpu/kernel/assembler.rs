@@ -28,6 +28,7 @@ pub fn segment_kernel<T: Read>(
 ) -> Kernel {
     crate::print_mem_usage("before load segment");
     let p: Program = Program::load_segment(seg_reader).unwrap();
+    let steps = p.step as usize;
     crate::print_mem_usage("after load segment");
     let blockpath = get_block_path(basedir, block, file);
     crate::print_mem_usage("after get block");
@@ -37,7 +38,7 @@ pub fn segment_kernel<T: Read>(
         ordered_labels: vec![],
         global_labels: HashMap::new(),
         blockpath,
-        steps,
+        steps: steps,
     }
 }
 

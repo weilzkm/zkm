@@ -108,6 +108,10 @@ impl Memory {
         self.pages.len()
     }
 
+    pub fn rtrace_count(&self) -> usize {
+        self.rtrace.len()
+    }
+
     pub fn for_each_page<T: Fn(u32, &Rc<RefCell<CachedPage>>) -> Result<(), String>>(
         &mut self,
         handler: T,
@@ -183,7 +187,7 @@ impl Memory {
                 let page_addr = (addr as usize) & PAGE_ADDR_MASK;
 
                 match self.rtrace.get(&page_index) {
-                    None => {
+                    None => {                            
                         self.rtrace.insert(page_index, cached_page.data);
                         self.set_hash_trace(page_index, 0);
                     }

@@ -1,3 +1,4 @@
+use elf::segment;
 use elf::{endian::AnyEndian, ElfBytes};
 use std::env;
 use std::fs::{self, File};
@@ -77,23 +78,27 @@ fn split_elf_into_segs() {
     let mut instrumented_state = InstrumentedState::new(state, block_path);
     std::fs::create_dir_all(&seg_path).unwrap();
     let new_writer = |_: &str| -> Option<std::fs::File> { None };
-    instrumented_state.split_segment(false, &seg_path, new_writer);
-    let mut segment_step: usize = seg_size;
+    instrumented_state.split_segment(false, 0, &seg_path, new_writer);
+    let segment_step: usize = seg_size * 3 / 2;
     let new_writer = |name: &str| -> Option<std::fs::File> { File::create(name).ok() };
+    let mut step = 0;
     loop {
         if instrumented_state.state.exited {
             break;
         }
         instrumented_state.step();
-        segment_step -= 1;
-        if segment_step == 0 {
-            segment_step = seg_size;
-            instrumented_state.split_segment(true, &seg_path, new_writer);
+        step += 1;
+
+        if step == segment_step || instrumented_state.state.split {
+            log::info!("Split {}: step {} page {}",instrumented_state.pre_segment_id, step, instrumented_state.state.memory.rtrace_count());
+            step = 0;
+            instrumented_state.state.split = false;
+            instrumented_state.split_segment(true, step, &seg_path, new_writer);
         }
     }
 
-    instrumented_state.split_segment(true, &seg_path, new_writer);
-    log::info!("Split done");
+    instrumented_state.split_segment(true, step, &seg_path, new_writer);
+    log::info!("Split done {}: step {} page {}", instrumented_state.pre_segment_id, step, instrumented_state.state.memory.rtrace_count());
 }
 
 fn prove_single_seg() {
