@@ -87,13 +87,16 @@ fn split_elf_into_segs() {
             break;
         }
         instrumented_state.step();
-        step += 1;
+
+        if !instrumented_state.state.split {
+            step += 1;
+        }
 
         if step == segment_step || instrumented_state.state.split {
             log::info!("Split {}: step {} page {}",instrumented_state.pre_segment_id, step, instrumented_state.state.memory.rtrace_count());
-            step = 0;
             instrumented_state.state.split = false;
             instrumented_state.split_segment(true, step, &seg_path, new_writer);
+            step = 0;
         }
     }
 
