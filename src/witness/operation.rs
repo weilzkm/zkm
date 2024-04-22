@@ -7,6 +7,8 @@ use crate::witness::errors::ProgramError;
 use crate::witness::memory::MemoryAddress;
 use crate::{arithmetic, logic};
 use anyhow::{Context, Result};
+use crate::keccak_sponge::columns::{KECCAK_RATE_BYTES, KECCAK_RATE_U32S};
+use keccak_hash::keccak;
 
 use plonky2::field::types::Field;
 
@@ -782,6 +784,9 @@ pub(crate) fn load_preimage<F: Field>(
 
     let mut map_addr = 0x31000004;
 
+    let mut preimage_data_addr = Vec::new();
+    let mut preimage_addr_value_byte_be = vec![0u8; content.len()];
+
     let mut j = 1;
     for i in (0..content.len()).step_by(WORD_SIZE) {
         if j == 8 {
@@ -807,11 +812,40 @@ pub(crate) fn load_preimage<F: Field>(
 
         log::trace!("{:X}: {:X}", map_addr, word);
         let mem_op = mem_write_gp_log_and_fill(j, addr, state, &mut cpu_row, word.to_be());
+        preimage_data_addr.push(addr);
+        preimage_addr_value_byte_be[i * 4..(i * 4 + 4)].copy_from_slice(&word.to_le_bytes());
         state.traces.push_memory(mem_op);
         map_addr += 4;
         j += 1;
     }
 
+    state.traces.push_cpu(cpu_row);
+
+    let mut cpu_row = CpuColumnsView::default();
+    cpu_row.clock = F::from_canonical_usize(state.traces.clock());
+    cpu_row.is_keccak_sponge = F::ONE;
+
+    // The Keccak sponge CTL uses memory value columns for its inputs and outputs.
+    cpu_row.mem_channels[0].value = F::ZERO; // context
+    cpu_row.mem_channels[1].value = F::from_canonical_usize(Segment::Code as usize);
+    let final_idx = preimage_addr_value_byte_be.len() / KECCAK_RATE_BYTES * KECCAK_RATE_U32S;
+    cpu_row.mem_channels[2].value = F::from_canonical_usize(preimage_data_addr[final_idx].virt);
+    cpu_row.mem_channels[3].value = F::from_canonical_usize(preimage_addr_value_byte_be.len()); // len
+
+    let hash_data_bytes = keccak(&preimage_addr_value_byte_be).0;
+    let hash_data_be = core::array::from_fn(|i| {
+        u32::from_le_bytes(core::array::from_fn(|j| hash_data_bytes[i * 4 + j]))
+    });
+
+    log::info!("actual preimage data hash: {:?}", hash_data_bytes);
+    log::info!("expected preimage data hash: {:?}", hash_bytes);
+    assert_eq!(hash_data_bytes, hash_bytes);
+    let hash_data = hash_data_be.map(u32::from_be);
+
+    cpu_row.general.hash_mut().value = hash_data.map(F::from_canonical_u32);
+    cpu_row.general.hash_mut().value.reverse();
+
+    keccak_sponge_log(state, preimage_data_addr, preimage_addr_value_byte_be);
     state.traces.push_cpu(cpu_row);
 
     Ok(())

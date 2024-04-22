@@ -18,7 +18,7 @@ pub const FD_STDERR: u32 = 2;
 pub const MIPS_EBADF: u32 = 9;
 
 pub const SEGMENT_STEPS: usize = 200000;
-pub const PAGE_NUM: usize = 145;
+pub const PAGE_NUM: usize = 150;
 
 // image_id = keccak(page_hash_root || end_pc)
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Default)]
