@@ -785,11 +785,8 @@ pub(crate) fn load_preimage<F: Field>(
     let mut map_addr = 0x31000004;
 
     let mut preimage_data_addr = Vec::new();
-    let mut length = content.len();
-    if (length & 0x3) != 0 {
-        length = (length >> 2 << 2) + 4;
-    }
-    let mut preimage_addr_value_byte_be = vec![0u8; length];
+
+    let mut preimage_addr_value_byte_be = vec![0u8; content.len()];
 
     let mut j = 1;
     for i in (0..content.len()).step_by(WORD_SIZE) {
@@ -807,6 +804,7 @@ pub(crate) fn load_preimage<F: Field>(
             let offset = i + k;
             let byte = content.get(offset).context("Invalid block offset")?;
             word |= (*byte as u32) << (k * 8);
+            preimage_addr_value_byte_be[i] = *byte;
         }
         let addr = MemoryAddress::new(0, Segment::Code, map_addr);
         if len < WORD_SIZE {
@@ -817,7 +815,6 @@ pub(crate) fn load_preimage<F: Field>(
         log::trace!("{:X}: {:X}", map_addr, word);
         let mem_op = mem_write_gp_log_and_fill(j, addr, state, &mut cpu_row, word.to_be());
         preimage_data_addr.push(addr);
-        preimage_addr_value_byte_be[i..i + 4].copy_from_slice(&word.to_le_bytes());
         state.traces.push_memory(mem_op);
         map_addr += 4;
         j += 1;
