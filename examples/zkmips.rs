@@ -100,8 +100,9 @@ fn split_elf_into_segs() {
         }
     }
 
+    log::info!("Split {}: step {} page {}", instrumented_state.pre_segment_id, step, instrumented_state.state.memory.rtrace_count());
     instrumented_state.split_segment(true, step, &seg_path, new_writer);
-    log::info!("Split done {}: step {} page {}", instrumented_state.pre_segment_id, step, instrumented_state.state.memory.rtrace_count());
+    log::info!("Split done");
 }
 
 fn prove_single_seg() {
