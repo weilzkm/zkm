@@ -804,7 +804,7 @@ pub(crate) fn load_preimage<F: Field>(
             let offset = i + k;
             let byte = content.get(offset).context("Invalid block offset")?;
             word |= (*byte as u32) << (k * 8);
-            preimage_addr_value_byte_be[i] = *byte;
+            preimage_addr_value_byte_be[i + k] = *byte;
         }
         let addr = MemoryAddress::new(0, Segment::Code, map_addr);
         if len < WORD_SIZE {
