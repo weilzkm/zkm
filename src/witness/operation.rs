@@ -838,8 +838,8 @@ pub(crate) fn load_preimage<F: Field>(
         u32::from_le_bytes(core::array::from_fn(|j| hash_data_bytes[i * 4 + j]))
     });
 
-    log::info!("actual preimage data hash: {:?}", hash_data_bytes);
-    log::info!("expected preimage data hash: {:?}", hash_bytes);
+    log::debug!("actual preimage data hash: {:?}", hash_data_bytes);
+    log::debug!("expected preimage data hash: {:?}", hash_bytes);
     assert_eq!(hash_data_bytes, hash_bytes);
     let hash_data = hash_data_be.map(u32::from_be);
 
