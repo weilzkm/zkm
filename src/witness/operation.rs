@@ -785,7 +785,11 @@ pub(crate) fn load_preimage<F: Field>(
     let mut map_addr = 0x31000004;
 
     let mut preimage_data_addr = Vec::new();
-    let mut preimage_addr_value_byte_be = vec![0u8; content.len()];
+    let mut length = content.len();
+    if (length & 0x3) != 0 {
+        length = (length >> 2 << 2) + 4;
+    }
+    let mut preimage_addr_value_byte_be = vec![0u8; length];
 
     let mut j = 1;
     for i in (0..content.len()).step_by(WORD_SIZE) {
