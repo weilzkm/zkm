@@ -79,7 +79,7 @@ fn split_elf_into_segs() {
     std::fs::create_dir_all(&seg_path).unwrap();
     let new_writer = |_: &str| -> Option<std::fs::File> { None };
     instrumented_state.split_segment(false, 0, &seg_path, new_writer);
-    let segment_step: usize = seg_size * 3 / 2;
+    let segment_step: usize = seg_size * 2 - 40000;
     let new_writer = |name: &str| -> Option<std::fs::File> { File::create(name).ok() };
     let mut step = 0;
     loop {
