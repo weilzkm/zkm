@@ -817,7 +817,7 @@ pub(crate) fn load_preimage<F: Field>(
         log::trace!("{:X}: {:X}", map_addr, word);
         let mem_op = mem_write_gp_log_and_fill(j, addr, state, &mut cpu_row, word.to_be());
         preimage_data_addr.push(addr);
-        preimage_addr_value_byte_be[i * 4..(i * 4 + 4)].copy_from_slice(&word.to_le_bytes());
+        preimage_addr_value_byte_be[i..i + 4].copy_from_slice(&word.to_le_bytes());
         state.traces.push_memory(mem_op);
         map_addr += 4;
         j += 1;
