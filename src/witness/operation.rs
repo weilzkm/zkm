@@ -821,6 +821,7 @@ pub(crate) fn load_preimage<F: Field>(
     }
 
     state.traces.push_cpu(cpu_row);
+    state.memory.apply_ops(&state.traces.memory_ops);
 
     let mut cpu_row = CpuColumnsView::default();
     cpu_row.clock = F::from_canonical_usize(state.traces.clock());

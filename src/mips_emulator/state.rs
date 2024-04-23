@@ -295,6 +295,7 @@ impl State {
         let data = fs::read(preiamge_path).expect("could not read file");
         let data: Box<&[u8]> = Box::new(data.as_slice());
 
+        log::info!("load preimage {}", data.len());
         self.memory.set_memory(0x31000000, data.len() as u32);
 
         self.memory
