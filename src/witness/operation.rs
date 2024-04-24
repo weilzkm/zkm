@@ -808,8 +808,12 @@ pub(crate) fn load_preimage<F: Field>(
         }
         let addr = MemoryAddress::new(0, Segment::Code, map_addr);
         if len < WORD_SIZE {
-            let origin_val = state.memory.get(addr);
-            word |= (origin_val >> (len * 8)) << (len * 8);
+            let end = content.len() % KECCAK_RATE_BYTES;
+            word |= 0b1 << (len * 8);
+
+            if end + 4 > KECCAK_RATE_BYTES {
+                word |= 0b10000000 << 24;
+            }
         }
 
         log::trace!("{:X}: {:X}", map_addr, word);
