@@ -80,11 +80,13 @@ fn split_elf_into_segs() {
     instrumented_state.split_segment(false, &seg_path, new_writer);
     let mut segment_step: usize = seg_size;
     let new_writer = |name: &str| -> Option<std::fs::File> { File::create(name).ok() };
+    let mut total_steps: usize = 0;
     loop {
         if instrumented_state.state.exited {
             break;
         }
         instrumented_state.step();
+        total_steps += 1;
         segment_step -= 1;
         if segment_step == 0 {
             segment_step = seg_size;
@@ -93,7 +95,7 @@ fn split_elf_into_segs() {
     }
 
     instrumented_state.split_segment(true, &seg_path, new_writer);
-    log::info!("Split done");
+    log::info!("Split done, total {} instructions", total_steps);
 }
 
 fn prove_single_seg() {
