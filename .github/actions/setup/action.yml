@@ -18,7 +18,5 @@ runs:
       id: rustc-toolchain
       shell: bash
       run: |
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o /tmp/rustup.sh && sh /tmp/rustup.sh -y
-        . "$HOME/.cargo/env"
-        rustup toolchain install nightly
-        rustup default nightly
+        curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/zkMIPS/toolchain/refs/heads/main/setup.sh | sh
+        . "$HOME/.zkm-toolchain/env"

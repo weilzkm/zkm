@@ -23,11 +23,8 @@ RUN apt-get update && apt-get install -y \
 
 # install mips target
 RUN \
-  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o /tmp/rustup.sh && \
-  sh /tmp/rustup.sh -y && \
-  . "$HOME/.cargo/env" && \
-  rustup toolchain install nightly && \
-  rustup default nightly
+  curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/zkMIPS/toolchain/refs/heads/main/setup.sh | sh \
+  . "$HOME/.zkm-toolchain/env"
 
 # install golang
 ENV GOLANG_VERSION=1.23.2
