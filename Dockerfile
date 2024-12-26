@@ -13,15 +13,21 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     wget \
     vim \
+    git \
+    cmake \
+    ninja-build \
+    openssl-devel \
+    zstd \
+    xz \
     && rm -rf /var/lib/apt/lists/*
 
-# install musl cross compiler
-RUN wget http://musl.cc/mips-linux-muslsf-cross.tgz
-RUN mkdir -p "/root/.mipsrust"
-RUN tar -xzf "mips-linux-muslsf-cross.tgz" -C "/root/.mipsrust"
-
-ENV CARGO_TARGET_MIPS_UNKNOWN_LINUX_MUSL_LINKER="/root/.mipsrust/mips-linux-muslsf-cross/bin/mips-linux-muslsf-gcc"
-ENV CARGO_TARGET_MIPS_UNKNOWN_LINUX_MUSL_RUSTFLAGS='--cfg target_os="zkvm" -C target-feature=+crt-static -C link-arg=-g'
+# install mips target
+RUN \
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o /tmp/rustup.sh && \
+  sh /tmp/rustup.sh -y && \
+  . "$HOME/.cargo/env" && \
+  rustup toolchain install nightly && \
+  rustup default nightly
 
 # install golang
 ENV GOLANG_VERSION=1.23.2
