@@ -1,0 +1,24 @@
+name: Test setup
+description: "Setup the environment for the CI"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Go 1.22
+      uses: actions/setup-go@v5
+      with:
+        go-version: "1.22"
+        cache-dependency-path: "**/go.sum"
+
+    - name: Print go version
+      shell: bash
+      run: go version
+
+    - name: Setup toolchain
+      id: rustc-toolchain
+      shell: bash
+      run: |
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o /tmp/rustup.sh && sh /tmp/rustup.sh -y
+        . "$HOME/.cargo/env"
+        rustup toolchain install nightly
+        rustup default nightly
