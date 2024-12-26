@@ -35,7 +35,6 @@ jobs:
           - nightly
     steps:
       - uses: actions/checkout@v2
-      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
       - name: Setup CI
         uses: ./.github/actions/setup
       - name: Cargo build
@@ -51,7 +50,6 @@ jobs:
           - nightly
     steps:
       - uses: actions/checkout@v2
-      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
       - name: Setup CI
         uses: ./.github/actions/setup
       - name: Cargo test
@@ -65,11 +63,10 @@ jobs:
           - nightly
     steps:
       - uses: actions/checkout@v2
-      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
       - name: Setup CI
         uses: ./.github/actions/setup
       - name: Cargo build precompile
-        run: cd prover/examples/sha2-rust/host && cargo check
+        run: which cargo && which rustc && cd prover/examples/sha2-rust/host && cargo check
       - name: Cargo test
         run: cd prover/examples/sha2-precompile/host && RUST_LOG=info PRECOMPILE_PATH=../../sha2-rust/guest/elf/mips-unknown-linux-musl SEG_OUTPUT=/tmp/output cargo run --release
   fmt:
