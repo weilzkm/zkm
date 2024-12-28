@@ -13,15 +13,19 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     wget \
     vim \
+    git \
+    cmake \
+    ninja-build \
+    openssl-devel \
+    zstd \
+    xz \
     && rm -rf /var/lib/apt/lists/*
 
-# install musl cross compiler
-RUN wget http://musl.cc/mips-linux-muslsf-cross.tgz
-RUN mkdir -p "/root/.mipsrust"
-RUN tar -xzf "mips-linux-muslsf-cross.tgz" -C "/root/.mipsrust"
+# install mips target
+RUN \
+  curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/zkMIPS/toolchain/refs/heads/main/setup.sh | sh \
 
-ENV CARGO_TARGET_MIPS_UNKNOWN_LINUX_MUSL_LINKER="/root/.mipsrust/mips-linux-muslsf-cross/bin/mips-linux-muslsf-gcc"
-ENV CARGO_TARGET_MIPS_UNKNOWN_LINUX_MUSL_RUSTFLAGS='--cfg target_os="zkvm" -C target-feature=+crt-static -C link-arg=-g'
+ENV PATH=$HOME/.zkm-toolchain/rust-toolchain-x86-64-unknown-linux-gnu-20241217/bin:$PATH
 
 # install golang
 ENV GOLANG_VERSION=1.23.2
@@ -54,4 +58,3 @@ ENV PATH=/usr/local/go/bin:$PATH
 # compile go mips
 # cd /zkm/prover/examples/add-go && GOOS=linux GOARCH=mips GOMIPS=softfloat go build .
 # cd /zkm/prover/examples/sha2-go && GOOS=linux GOARCH=mips GOMIPS=softfloat go build .
-
