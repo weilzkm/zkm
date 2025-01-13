@@ -1220,6 +1220,7 @@ pub(crate) fn generate_sha_extend<
 
         // Write w[i].
         let addr = MemoryAddress::new(0, Segment::Code, w_ptr + i * 4);
+        log::info!("write {:X} {:X}",  w_ptr + i * 4, w_i);
         let mem_op = mem_write_gp_log_and_fill(4, addr, state, &mut cpu_row, w_i);
         state.traces.push_memory(mem_op);
         state.traces.push_cpu(cpu_row);
@@ -1255,7 +1256,7 @@ pub(crate) fn generate_sha_compress<
         let addr = MemoryAddress::new(0, Segment::Code, h_ptr + i * 4);
         let (value, mem_op) = mem_read_gp_with_log_and_fill(i, addr, state, &mut cpu_row);
         state.traces.push_memory(mem_op);
-        hx[i] = value
+        hx[i] = value;
     }
     state.traces.push_cpu(cpu_row);
     let mut original_w = Vec::new();
@@ -1313,6 +1314,7 @@ pub(crate) fn generate_sha_compress<
         let mem_op =
             mem_write_gp_log_and_fill(i, addr, state, &mut cpu_row, hx[i].wrapping_add(v[i]));
         state.traces.push_memory(mem_op);
+        log::info!("write {:X} {:X}",  h_ptr + i * 4, hx[i].wrapping_add(v[i]));
     }
     state.traces.push_cpu(cpu_row);
     Ok(())
@@ -1539,7 +1541,7 @@ pub(crate) fn generate_syscall<
         let _ = generate_sha_compress(state, a0, a1);
     }
     if is_sha_extend {
-        let _ = generate_sha_compress(state, a0, a1);
+        let _ = generate_sha_extend(state, a0, a1);
     }
     result
 }
