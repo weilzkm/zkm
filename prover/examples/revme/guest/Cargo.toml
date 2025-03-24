@@ -9,9 +9,10 @@ edition = "2021"
 #path = "src/lib.rs"
 
 [dependencies]
+bincode = "1.3.3"
 zkm-runtime = { path = "../../../../runtime/entrypoint" }
-revm = { git = "https://github.com/zkMIPS/revm", branch = "zkm", default-features = false, features = [ "serde" ] }
-models = { git = "https://github.com/zkMIPS/revme", branch = "feat/zkm", package = "models" }
+revm = { git = "https://github.com/zkMIPS/revm", branch = "serde-no-std", default-features = false, features = [ "serde" ] }
+models = { git = "https://github.com/zkMIPS/powdr-revme", branch = "bincode", package = "models" }
 serde = { version = "1.0", default-features = false, features = ["alloc", "derive", "rc"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
 k256 = { version = "0.13.3", features = ["ecdsa"], default-features = false }

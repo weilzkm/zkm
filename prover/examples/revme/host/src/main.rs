@@ -13,13 +13,12 @@ fn prove_revm() {
     let json_path = env::var("JSON_PATH").expect("JSON file is missing");
     let seg_size = env::var("SEG_SIZE").unwrap_or("0".to_string());
     let seg_size = seg_size.parse::<_>().unwrap_or(0);
-    let mut f = File::open(json_path).unwrap();
-    let mut data = vec![];
-    f.read_to_end(&mut data).unwrap();
-
+    let buf = std::fs::read(json_path).unwrap();
+    let test_suite = bincode::deserialize::<models::TestSuite>(&buf).map_err(|e| e.to_string()).unwrap();
     let mut state = load_elf_with_patch(ELF_PATH, vec![]);
     // load input
-    state.input_stream.push(data);
+
+    state.add_input_stream(&test_suite);
 
     let (_total_steps, seg_num, mut _state) = split_prog_into_segs(state, &seg_path, "", seg_size);
 

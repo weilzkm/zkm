@@ -1,10 +1,10 @@
 #![no_std]
 #![no_main]
 
-use alloc::boxed::Box;
 use revm::{
     db::CacheState,
-    primitives::{calc_excess_blob_gas, Bytecode, Env, SpecId, TransactTo, B256},
+    interpreter::CreateScheme,
+    primitives::{calc_excess_blob_gas, Bytecode, Env, SpecId, TransactTo, U256, B256},
     Evm,
 };
 extern crate libc;
@@ -28,17 +28,15 @@ pub fn main() {
 }
 
 fn ethereum_test() {
-    let input: Vec<u8> = zkm_runtime::io::read();
-    let suite = read_suite(&input);
-
+    // let input: Vec<u8> = zkm_runtime::io::read();
+    // let suite = read_suite(&input);
+    let suite: TestSuite = zkm_runtime::io::read();
     assert!(execute_test_suite(suite).is_ok());
 }
 
 fn read_suite(s: &Vec<u8>) -> TestSuite {
-    let suite: TestUnit = serde_json::from_slice(s).map_err(|e| e).unwrap();
-    let mut btm = BTreeMap::new();
-    btm.insert("test".to_string(), suite);
-    TestSuite(btm)
+    let suite: TestSuite = serde_json::from_slice(s).map_err(|e| e).unwrap();
+    suite
 }
 
 fn execute_test_suite(suite: TestSuite) -> Result<(), String> {
@@ -47,7 +45,9 @@ fn execute_test_suite(suite: TestSuite) -> Result<(), String> {
         let mut cache_state = CacheState::new(false);
         for (address, info) in unit.pre {
             let acc_info = revm::primitives::AccountInfo {
-                balance: info.balance, code_hash: B256::from(zkm_runtime::io::keccak(&info.code)),
+                balance: info.balance,
+                // code_hash: keccak256(&info.code),
+                code_hash: B256::from(zkm_runtime::io::keccak(&info.code)),
                 code: Some(Bytecode::new_raw(info.code)),
                 nonce: info.nonce,
             };
@@ -128,16 +128,19 @@ fn execute_test_suite(suite: TestSuite) -> Result<(), String> {
                     .unwrap_or_default()
                     .iter()
                     .map(|item| {
-                        revm::primitives::AccessListItem {
-                            address: item.address,
-                            storage_keys: item.storage_keys.iter().copied().collect(),
-                        }
+                        (
+                            item.address,
+                            item.storage_keys
+                                .iter()
+                                .map(|key| U256::from_be_bytes(key.0))
+                                .collect::<Vec<_>>(),
+                        )
                     })
                     .collect();
 
                 let to = match unit.transaction.to {
                     Some(add) => TransactTo::Call(add),
-                    None => TransactTo::Create,
+                    None => TransactTo::Create(CreateScheme::Create),
                 };
                 env.tx.transact_to = to;
 
@@ -152,8 +155,8 @@ fn execute_test_suite(suite: TestSuite) -> Result<(), String> {
                     .build();
                 let mut evm = Evm::builder()
                     .with_db(&mut state)
-                    .modify_env(|e| *e = Box::new(env.clone()))
-                    .with_spec_id(spec_id)
+                    .modify_env(|e| *e = env.clone())
+                    .spec_id(spec_id)
                     .build();
 
                 // do the deed
