@@ -11,7 +11,7 @@ edition = "2021"
 [dependencies]
 zkm-runtime = { path = "../../../../runtime/entrypoint" }
 revm = { git = "https://github.com/zkMIPS/revm", branch = "zkm", default-features = false, features = [ "serde", "optional_no_base_fee", "optional_balance_check" ] }
-models = { git = "https://github.com/zkMIPS/revme", package = "models", rev = "0a642785cd9fbcaa79779f8499aae58ea5a48495" }
+models = { git = "https://github.com/zkMIPS/revme", branch = "feat/zkm", package = "models" }
 serde = { version = "1.0", default-features = false, features = ["derive", "rc"] }
 serde_json = { version = "1.0", default-features = false }
 
