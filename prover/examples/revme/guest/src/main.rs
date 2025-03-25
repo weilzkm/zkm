@@ -34,20 +34,20 @@ fn ethereum_test() {
     assert!(execute_test_suite(suite).is_ok());
 }
 
-fn read_suite(s: &Vec<u8>) -> TestSuite {
-    let suite: TestUnit = serde_json::from_slice(s).map_err(|e| e).unwrap();
-    let mut btm = BTreeMap::new();
-    btm.insert("test".to_string(), suite);
+
+pub fn read_suite(s: &Vec<u8>) -> TestSuite {
+    let btm: BTreeMap<String, TestUnit> = serde_json::from_slice(s).unwrap();
     TestSuite(btm)
 }
 
-fn execute_test_suite(suite: TestSuite) -> Result<(), String> {
-    for (_name, unit) in suite.0 {
+pub fn execute_test_suite(suite: TestSuite) -> Result<(), String> {
+    for (_txid, unit) in suite.0 {
         // Create database and insert cache
         let mut cache_state = CacheState::new(false);
         for (address, info) in unit.pre {
             let acc_info = revm::primitives::AccountInfo {
-                balance: info.balance, code_hash: B256::from(zkm_runtime::io::keccak(&info.code)),
+                balance: info.balance,
+                code_hash: keccak256(&info.code),
                 code: Some(Bytecode::new_raw(info.code)),
                 nonce: info.nonce,
             };
@@ -56,8 +56,10 @@ fn execute_test_suite(suite: TestSuite) -> Result<(), String> {
 
         let mut env = Env::default();
         // for mainnet
-        env.cfg.chain_id = 1;
+        env.cfg.chain_id = unit.chain_id.unwrap_or(1);
         // env.cfg.spec_id is set down the road
+        env.cfg.disable_base_fee = true;
+        env.cfg.disable_balance_check = true;
 
         // block env
         env.block.number = unit.env.current_number;
@@ -69,15 +71,13 @@ fn execute_test_suite(suite: TestSuite) -> Result<(), String> {
         // after the Merge prevrandao replaces mix_hash field in block and replaced difficulty opcode in EVM.
         env.block.prevrandao = unit.env.current_random;
         // EIP-4844
-        if let (Some(parent_blob_gas_used), Some(parent_excess_blob_gas)) = (
-            unit.env.parent_blob_gas_used,
-            unit.env.parent_excess_blob_gas,
-        ) {
-            env.block
-                .set_blob_excess_gas_and_price(calc_excess_blob_gas(
-                    parent_blob_gas_used.to(),
-                    parent_excess_blob_gas.to(),
-                ));
+        if let (Some(parent_blob_gas_used), Some(parent_excess_blob_gas)) =
+            (unit.env.parent_blob_gas_used, unit.env.parent_excess_blob_gas)
+        {
+            env.block.set_blob_excess_gas_and_price(calc_excess_blob_gas(
+                parent_blob_gas_used.to(),
+                parent_excess_blob_gas.to(),
+            ));
         }
 
         // tx env
@@ -86,11 +86,8 @@ fn execute_test_suite(suite: TestSuite) -> Result<(), String> {
             _ => recover_address(unit.transaction.secret_key.as_slice())
                 .ok_or_else(|| String::new())?,
         };
-        env.tx.gas_price = unit
-            .transaction
-            .gas_price
-            .or(unit.transaction.max_fee_per_gas)
-            .unwrap_or_default();
+        env.tx.gas_price =
+            unit.transaction.gas_price.or(unit.transaction.max_fee_per_gas).unwrap_or_default();
         env.tx.gas_priority_fee = unit.transaction.max_priority_fee_per_gas;
         // EIP-4844
         env.tx.blob_hashes = unit.transaction.blob_versioned_hashes;
@@ -111,13 +108,7 @@ fn execute_test_suite(suite: TestSuite) -> Result<(), String> {
 
             for (_index, test) in tests.into_iter().enumerate() {
                 env.tx.gas_limit = unit.transaction.gas_limit[test.indexes.gas].saturating_to();
-
-                env.tx.data = unit
-                    .transaction
-                    .data
-                    .get(test.indexes.data)
-                    .unwrap()
-                    .clone();
+                env.tx.data = unit.transaction.data.get(test.indexes.data).unwrap().clone();
                 env.tx.value = unit.transaction.value[test.indexes.value];
 
                 env.tx.access_list = unit
@@ -127,11 +118,9 @@ fn execute_test_suite(suite: TestSuite) -> Result<(), String> {
                     .and_then(Option::as_deref)
                     .unwrap_or_default()
                     .iter()
-                    .map(|item| {
-                        revm::primitives::AccessListItem {
-                            address: item.address,
-                            storage_keys: item.storage_keys.iter().copied().collect(),
-                        }
+                    .map(|item| revm::primitives::AccessListItem {
+                        address: item.address,
+                        storage_keys: item.storage_keys.iter().copied().collect(),
                     })
                     .collect();
 
@@ -160,6 +149,7 @@ fn execute_test_suite(suite: TestSuite) -> Result<(), String> {
                 //let timer = Instant::now();
                 let mut check = || {
                     let exec_result = evm.transact_commit();
+                    //println!("{} {:?}", _txid, exec_result);
 
                     match (&test.expect_exception, &exec_result) {
                         // do nothing

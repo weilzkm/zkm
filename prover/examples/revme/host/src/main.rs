@@ -19,7 +19,7 @@ fn prove_revm() {
 
     let mut state = load_elf_with_patch(ELF_PATH, vec![]);
     // load input
-    state.input_stream.push(data);
+    state.add_input_stream(&data);
 
     let (_total_steps, seg_num, mut _state) = split_prog_into_segs(state, &seg_path, "", seg_size);
 
