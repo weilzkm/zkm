@@ -1,25 +1,25 @@
 #![no_std]
 #![no_main]
 
-use alloc::boxed::Box;
 use revm::{
     db::CacheState,
-    primitives::{calc_excess_blob_gas, Bytecode, Env, SpecId, TransactTo, B256},
+    primitives::{calc_excess_blob_gas, Bytecode, Env, SpecId, TransactTo, keccak256},
     Evm,
 };
+
 extern crate libc;
 
 use models::*;
-
 mod utils;
 
 use utils::recover_address;
 
 extern crate alloc;
+use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec::Vec;
-use alloc::collections::BTreeMap;
+use alloc::boxed::Box;
 
 zkm_runtime::entrypoint!(main);
 
