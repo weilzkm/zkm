@@ -1053,6 +1053,9 @@ impl InstrumentedState {
             self.state.registers[store_reg as usize] = val;
         }
 
+        if self.state.dump_info {
+            log::info!("pc: {:X} write reg {} {:X}", self.state.pc, store_reg, val);
+        }
         self.state.pc = self.state.next_pc;
         self.state.next_pc += 4;
     }
@@ -1091,8 +1094,8 @@ impl InstrumentedState {
         let mut rs = self.state.registers[((insn >> 21) & 0x1f) as usize];
         let mut rd_reg = rt_reg;
         let fun = insn & 0x3f;
-        if opcode == 0 || opcode == 0x1c || (opcode == 0x1F && (fun == 0x20 || fun == 4)) {
-            // R-type (stores rd), partial Special3 insts: ins, seb, seh, wsbh
+        if opcode == 0 || opcode == 0x1c || (opcode == 0x1F && fun == 0x20) {
+            // R-type (stores rd), partial Special3 insts: seb, seh, wsbh
             rt = self.state.registers[rt_reg as usize];
             rd_reg = (insn >> 11) & 0x1f;
         } else if opcode < 0x20 {
@@ -1104,8 +1107,8 @@ impl InstrumentedState {
             } else {
                 rt = sign_extension(insn & 0xffff, 16);
             }
-        } else if opcode >= 0x28 || opcode == 0x22 || opcode == 0x26 {
-            // store rt value with store
+        } else if opcode >= 0x28 || opcode == 0x22 || opcode == 0x26  || (opcode == 0x1F && fun == 0x4) {
+            // store rt value with store or ins
             rt = self.state.registers[rt_reg as usize];
 
             // store actual rt with lwl and lwr
@@ -1341,6 +1344,8 @@ impl InstrumentedState {
                     let lsb = (insn >> 6) & 0x1F;
                     let mask = (1 << (msbd + 1)) - 1;
                     let i = (rs >> lsb) & mask;
+                    log::info!("pc {:X} ext inst: {:X} ins {:X}  {:X}  {:X} {:X} {} {}: {:X}", self.state.pc, insn, rt, self.state.registers[((insn >> 16) & 0x1f) as usize], rs, self.state.registers[((insn >> 21) & 0x1f) as usize], msbd, lsb, i);
+                    self.state.dump_info = true;
                     return i;
                 } else if fun == 4 {
                     // ins
@@ -1348,6 +1353,8 @@ impl InstrumentedState {
                     let lsb = (insn >> 6) & 0x1F;
                     let size = msb - lsb + 1;
                     let mask = (1u32 << size) - 1;
+                    log::info!("pc {:X} ins inst: {:X} ins {:X}  {:X}  {:X} {:X} {} {}: {:X}", self.state.pc, insn, rt, self.state.registers[((insn >> 16) & 0x1f) as usize], rs, self.state.registers[((insn >> 21) & 0x1f) as usize], msb, lsb, (rt & !(mask << lsb)) | ((rs & mask) << lsb));
+                    self.state.dump_info = true;
                     return (rt & !(mask << lsb)) | ((rs & mask) << lsb);
                 } else if fun == 0b111011 {
                     //rdhwr
